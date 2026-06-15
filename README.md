@@ -14,7 +14,7 @@ The VeraCrypt SDK currently provides the following functionality:
 - Create encrypted file containers with customizable parameters
 - Format non-system partitions with VeraCrypt encryption
 - Support for multiple encryption algorithms (AES, Serpent, Twofish, and combinations)
-- Support for multiple hash algorithms (SHA-512, SHA-256, RIPEMD-160, Whirlpool, BLAKE2s-256)
+- Support for multiple header KDF/hash selectors (Argon2id, SHA-512, SHA-256, Whirlpool, BLAKE2s-256, Streebog)
 - Support for various filesystems (NTFS, FAT, ExFAT, ReFS)
 - Password and keyfile authentication
 - Progress callback support
@@ -47,7 +47,7 @@ VeraCrypt-SDK/
 
 ### System Requirements
 - Windows 10/11 (x64 or ARM64)
-- VeraCrypt driver installed
+- VeraCrypt driver installed. Use VeraCrypt 1.26.29 or later when creating Argon2id volumes.
 - Administrator privileges (required for device/partition formatting)
 
 ### Development Requirements
@@ -108,14 +108,14 @@ To create distributable packages for both architectures:
 cd build-x64
 cpack -C Release
 ```
-This creates `VeraCryptSDK-1.26.24-Windows-x64.zip`
+This creates `VeraCryptSDK-1.26.29-Windows-x64.zip`
 
 2. Package ARM64 distribution:
 ```bash
 cd build-arm64
 cpack -C Release
 ```
-This creates `VeraCryptSDK-1.26.24-Windows-ARM64.zip`
+This creates `VeraCryptSDK-1.26.29-Windows-ARM64.zip`
 
 The generated packages include:
 - Sample tool executable
@@ -175,12 +175,13 @@ int main() {
 - Serpent-Twofish-AES
 - Twofish-Serpent
 
-**Hash Algorithms:**
+**Header KDF / Hash Selectors:**
+- Argon2 (Argon2id KDF; aliases: Argon2id, BLAKE2b-512)
 - SHA-512 (default)
 - SHA-256
-- RIPEMD-160
 - Whirlpool
 - BLAKE2s-256
+- Streebog
 
 **Filesystems:**
 - NTFS (default)
@@ -200,7 +201,10 @@ The included `VeraCryptFormatTool.exe` demonstrates SDK usage:
 VeraCryptFormatTool.exe "C:\MyData.hc" -p "MySecret123" -s 104857600
 
 # Dynamic container with custom encryption (password will be prompted)
-VeraCryptFormatTool.exe "D:\secure.vhd" -s 268435456 -e "Serpent-Twofish-AES" -h "SHA-512" --dynamic
+VeraCryptFormatTool.exe "D:\secure.vhd" -s 268435456 -e "Serpent-Twofish-AES" --hash "SHA-512" --dynamic
+
+# Argon2id container
+VeraCryptFormatTool.exe "D:\argon2.hc" -p "MySecret123" -s 268435456 --hash Argon2
 
 # Container with keyfile authentication
 VeraCryptFormatTool.exe "C:\KeyfileVolume.hc" -k "C:\MyKeyfile.dat" -s 52428800
@@ -222,7 +226,7 @@ VeraCryptFormatTool.exe \Device\Harddisk1\Partition1 -p "EncryptMyPartition" --f
 - `-k, --keyfile <path>`: Keyfile path (can be used multiple times)
 - `-s, --size <bytes>`: Container size (supports KB, MB, GB, TB suffixes)
 - `-e, --encryption <alg>`: Encryption algorithm
-- `--hash <alg>`: Hash algorithm
+- `--hash, --kdf <alg>`: Header KDF/hash selector
 - `--fs <filesystem>`: Target filesystem
 - `--pim <value>`: Personal Iterations Multiplier
 - `--quick`: Quick format (less secure)
@@ -244,6 +248,7 @@ The SDK returns standardized error codes:
 
 - Always use strong passwords or keyfiles
 - Consider using PIM (Personal Iterations Multiplier) for additional security
+- Argon2id uses memory-hard header key derivation. The default Argon2 PIM uses 416 MiB of memory and 6 iterations.
 - Avoid quick format for maximum security (overwrites existing data)
 - Run with Administrator privileges only when formatting devices
 - Ensure VeraCrypt driver is properly installed and running
@@ -270,7 +275,7 @@ The SDK returns standardized error codes:
 3. **"Invalid parameter"**
    - Verify all required parameters are provided
    - Check that size is multiple of 512 bytes
-   - Ensure encryption/hash algorithms are valid
+   - Ensure encryption and KDF/hash selectors are valid
 
 ## Contributing
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # Project configuration
 project(VeraCryptSDK
-    VERSION 1.26.24
+    VERSION 1.26.29
     DESCRIPTION "VeraCrypt SDK for creating encrypted volumes"
     LANGUAGES CXX
 )

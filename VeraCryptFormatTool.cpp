@@ -35,16 +35,19 @@
  *    VeraCryptFormatTool.exe "C:\MyData.hc" -p "MySecret123" -s 104857600 --dynamic
  *
  * 2. Create a 256MB file container with Serpent-Twofish-AES, SHA-512, and a PIM:
- *    VeraCryptFormatTool.exe "D:\secure.vhd" -s 268435456 -e "Serpent-Twofish-AES" -h "SHA-512" --pim 2048
+ *    VeraCryptFormatTool.exe "D:\secure.vhd" -s 268435456 -e "Serpent-Twofish-AES" --hash "SHA-512" --pim 2048
  *
- * 3. Create a container using a keyfile:
+ * 3. Create a 256MB file container using Argon2id header key derivation:
+ *    VeraCryptFormatTool.exe "D:\argon2.hc" -s 268435456 -p "MySecret123" --hash Argon2
+ *
+ * 4. Create a container using a keyfile:
  *    VeraCryptFormatTool.exe "C:\KeyfileVolume.hc" -k "C:\MyKeyfile.dat"
  *
- * 4. Format an entire external disk with ExFAT.
+ * 5. Format an entire external disk with ExFAT.
  *    (REQUIRES RUNNING AS ADMINISTRATOR)
  *    VeraCryptFormatTool.exe \Device\Harddisk1\Partition0 -p "EncryptMyDisk" --fs ExFAT
  *
- * 5. Format a partition with NTFS and quick format.
+ * 6. Format a partition with NTFS and quick format.
  *    (REQUIRES RUNNING AS ADMINISTRATOR)
  *    VeraCryptFormatTool.exe \Device\Harddisk1\Partition1 -p "EncryptMyPartition" --fs NTFS --quick
  *
@@ -148,7 +151,7 @@ int wmain(int argc, wchar_t* argv[])
         else if ((_wcsicmp(argv[i], L"-e") == 0 || _wcsicmp(argv[i], L"--encryption") == 0) && i + 1 < argc) {
             options.encryptionAlgorithm = argv[++i];
         }
-        else if ((_wcsicmp(argv[i], L"--hash") == 0) && i + 1 < argc) {
+        else if ((_wcsicmp(argv[i], L"--hash") == 0 || _wcsicmp(argv[i], L"--kdf") == 0) && i + 1 < argc) {
             options.hashAlgorithm = argv[++i];
         }
         else if ((_wcsicmp(argv[i], L"--fs") == 0) && i + 1 < argc) {
@@ -305,7 +308,7 @@ int wmain(int argc, wchar_t* argv[])
     fwprintf(stderr, L"  Path: %s\n", options.path);
     fwprintf(stderr, L"  Type: %s\n", options.isDevice ? L"Device/Partition" : L"File Container");
     fwprintf(stderr, L"  Encryption: %s\n", options.encryptionAlgorithm);
-    fwprintf(stderr, L"  Hash: %s\n", options.hashAlgorithm);
+    fwprintf(stderr, L"  KDF/hash: %s\n", options.hashAlgorithm);
     fwprintf(stderr, L"  Filesystem: %s\n", options.filesystem);
     if (!options.isDevice) {
         fwprintf(stderr, L"  Size: %llu bytes\n", options.size);
@@ -390,8 +393,8 @@ void PrintUsage() {
     fwprintf(stderr, L"  --pim <value>          Personal Iterations Multiplier (PIM). Use 0 for default.\n");
     fwprintf(stderr, L"  -e, --encryption <alg> Encryption algorithm (Default: AES).\n");
     fwprintf(stderr, L"                         (e.g., Serpent, Twofish, AES-Twofish-Serpent)\n");
-    fwprintf(stderr, L"  --hash <alg>           Hash algorithm (Default: SHA-512).\n");
-    fwprintf(stderr, L"                         (e.g., RIPEMD-160, Whirlpool, SHA-256)\n");
+    fwprintf(stderr, L"  --hash, --kdf <alg>    Header KDF/hash selector (Default: SHA-512).\n");
+    fwprintf(stderr, L"                         (e.g., Argon2, SHA-512, SHA-256, Whirlpool, BLAKE2s-256, Streebog)\n");
     fwprintf(stderr, L"  --fs <filesystem>      Filesystem to format with (Default: NTFS).\n");
     fwprintf(stderr, L"                         (e.g., FAT, ExFAT, ReFS, None)\n");
     fwprintf(stderr, L"  --quick                Perform a quick format (less secure).\n\n");
@@ -559,7 +562,7 @@ const char* GetErrorMessage(int errorCode) {
     case VCF_ERROR_INVALID_PARAMETER: return "An invalid parameter was passed (e.g., NULL path or invalid size).";
     case VCF_ERROR_PASSWORD_OR_KEYFILE_REQUIRED: return "A password and/or keyfile must be provided.";
     case VCF_ERROR_INVALID_ENCRYPTION_ALGORITHM: return "The specified encryption algorithm is not supported.";
-    case VCF_ERROR_INVALID_HASH_ALGORITHM: return "The specified hash algorithm is not supported.";
+    case VCF_ERROR_INVALID_HASH_ALGORITHM: return "The specified KDF/hash selector is not supported.";
     case VCF_ERROR_INVALID_FILESYSTEM: return "The specified filesystem is not supported.";
     case VCF_ERROR_PASSWORD_POLICY: return "Password is too long or violates a policy.";
     case VCF_ERROR_KEYFILE_ERROR: return "An error occurred while reading or processing a keyfile. Check if the file exists and is accessible.";
